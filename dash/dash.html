@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>study desktop</title>
-  <link rel="stylesheet" href="dash.css?v=3">
+  <link rel="stylesheet" href="dash.css?v=6">
 </head>
 <body>
   <!-- macOS-style menu bar -->
@@ -20,10 +20,10 @@
          the glyph is the app's icon (emoji or image) used in the dock and title bars. -->
     <div id="apps" hidden>
       <span class="app" data-open="notes"><span class="glyph"><img src="images/notes-icon.png" alt=""></span></span>
-      <span class="app" data-open="todo"><span class="glyph">✅</span></span>
+      <span class="app" data-open="todo"><span class="glyph"><img src="images/todo-icon.png" alt=""></span></span>
       <span class="app" data-open="timer"><span class="glyph"><img src="images/timer-icon.png" alt=""></span></span>
-      <span class="app" data-open="calendar"><span class="glyph">📅</span></span>
-      <span class="app" data-open="stats"><span class="glyph">📊</span></span>
+      <span class="app" data-open="calendar"><span class="glyph"><img src="images/calendar-icon.png" alt=""></span></span>
+      <span class="app" data-open="stats"><span class="glyph"><img src="images/stats-icon.png" alt=""></span></span>
     </div>
 
     <!-- Windows -->
@@ -65,7 +65,7 @@
       </div>
     </section>
 
-    <section class="window closed" id="timer" data-title="focus timer" data-icon="⏱️" style="left:420px; top:160px; width:340px;">
+    <section class="window closed" id="timer" data-title="focus timer" data-icon="⏱️" style="left:420px; top:20px; width:380px;">
       <div class="titlebar">
         <div class="controls">
           <button class="btn-close" title="close" aria-label="close"><span>×</span></button>
@@ -79,6 +79,15 @@
           <button data-mode="timer" class="on">timer</button>
           <button data-mode="stopwatch">stopwatch</button>
         </div>
+
+        <!-- café counter: your treat gets made as the timer runs -->
+        <div class="cafe-scene">
+          <div id="cafe-dish"></div>
+          <div class="cafe-counter"></div>
+        </div>
+        <p id="cafe-status" class="cafe-status" aria-live="polite"></p>
+        <div id="cafe-menu" class="cafe-menu" role="radiogroup" aria-label="pick a treat"></div>
+
         <div id="timer-display">25:00</div>
         <div class="row">
           <button id="timer-start">start</button>
@@ -95,6 +104,7 @@
           <button type="submit">set</button>
         </form>
         <p class="hint stopwatch-only">sessions of 1 min or more are saved when you press stop & save</p>
+        <p id="cafe-treats" class="hint cafe-treats"></p>
         <p id="timer-today" class="hint"></p>
       </div>
     </section>
@@ -170,6 +180,6 @@
   <!-- Dock (filled in by dash.js from the desktop icons) -->
   <nav id="dock" aria-label="dock"></nav>
 
-  <script src="dash.js?v=3"></script>
+  <script src="dash.js?v=6"></script>
 </body>
 </html>

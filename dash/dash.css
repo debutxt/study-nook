@@ -438,6 +438,69 @@ textarea, input, #todo-list .todo-body > span, .user-text { text-transform: none
 #timer-custom-min:focus { border-color: var(--accent); }
 .unit { font-size: 0.8rem; color: var(--muted); }
 
+/* ---------- Café (focus timer) ---------- */
+.cafe-scene {
+  position: relative;
+  margin: 6px auto 0;
+  height: 170px;
+  border-radius: 12px;
+  background: var(--pink);
+  overflow: hidden;
+}
+/* a little wooden counter the treat sits on */
+.cafe-counter {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 26px;
+  background: #e8cdb5;
+  border-top: 3px solid #dcbb9e;
+}
+#cafe-dish {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  width: 210px;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+#cafe-dish svg, .cafe-menu svg, .treat-chip svg { display: block; width: 100%; height: auto; overflow: visible; }
+/* parts of the treat fade in as they're made */
+#cafe-dish [data-show] { transition: opacity .9s ease; }
+#cafe-dish [data-fill] { transition: y 1s linear, height 1s linear; }
+.hidden-part { opacity: 0; }
+.steam path { animation: steam 2.6s ease-in-out infinite; }
+.steam path:nth-child(2) { animation-delay: -.9s; }
+.steam path:nth-child(3) { animation-delay: -1.7s; }
+@keyframes steam {
+  0%   { opacity: 0; transform: translateY(6px); }
+  40%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+@media (prefers-reduced-motion: reduce) { .steam path { animation: none; } }
+
+.cafe-status { margin: 8px 0 6px; font-size: 0.8rem; min-height: 1.2em; }
+
+.cafe-menu { display: flex; justify-content: center; gap: 6px; margin-bottom: 4px; }
+.content .cafe-menu button {
+  width: 54px;
+  height: 46px;
+  padding: 3px !important;
+  border-radius: 10px;
+  background: var(--white);
+}
+.content .cafe-menu button.on {
+  background: var(--pink);
+  box-shadow: 0 0 0 1.5px var(--text), 0 1px 1px rgba(90, 42, 65, .12);
+}
+/* menu pictures: show the whole treat with no animation */
+.cafe-menu .steam path, .treat-chip .steam path { animation: none; opacity: 1; }
+
+#timer-display { font-size: 2.6rem; margin: 2px 0 8px; }
+
+.cafe-treats { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-bottom: 0; }
+.treat-chip { display: inline-flex; align-items: center; gap: 1px; color: var(--text); }
+.treat-chip svg { width: 26px; }
+
 /* ---------- Study stats ---------- */
 .stats-content h4 { margin: 18px 0 8px; font-size: 0.85rem; }
 .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
@@ -588,7 +651,7 @@ textarea, input, #todo-list .todo-body > span, .user-text { text-transform: none
 .mb-logo { width: 18px; height: 18px; object-fit: contain; -webkit-user-drag: none; }
 .mb-app { font-weight: 700; text-shadow: .5px 0 0 currentColor; }   /* faux-bold that stays crisp */
 .mb-spacer { flex: 1; }
-#clock { font-variant-numeric: tabular-nums; white-space: pre; }
+#clock { font-variant-numeric: tabular-nums; white-space: pre; color: #5c3d2e; }   /* cozy dark brown */
 
 /* ---------- Dock (bottom) ---------- */
 #dock {
@@ -629,14 +692,8 @@ textarea, input, #todo-list .todo-body > span, .user-text { text-transform: none
   box-shadow: 0 2px 6px rgba(90, 42, 65, .14), 0 0 0 .5px rgba(90, 42, 65, .08);
   font-size: 1.6rem;
   line-height: 1;
-  transform-origin: 50% 100%;
-  transition: transform .18s cubic-bezier(.2, .8, .3, 1);
 }
 .dock-tile .app-icon img { width: 38px; height: 38px; }
-/* magnification: hovered icon grows most, its neighbours a little */
-.dock-item:hover .dock-tile { transform: scale(1.35) translateY(-4px); }
-.dock-item:hover + .dock-item .dock-tile,
-.dock-item:has(+ .dock-item:hover) .dock-tile { transform: scale(1.12) translateY(-1px); }
 .dock-item:active .dock-tile { filter: brightness(.92); }
 /* running indicator */
 .dock-item.running::after {

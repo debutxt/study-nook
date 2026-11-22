@@ -219,6 +219,7 @@ function fmtDue(due) {
 function dataChanged() {
   renderTodos();
   renderStudyToday();
+  renderTreats();
   renderStats();
   renderCalendar();
 }
@@ -331,6 +332,7 @@ function showTime() {
     : clockText(elapsed);
   display.textContent = text;
   document.title = timerId ? `${text} · study desktop` : "study desktop";
+  updateCafe();
 }
 
 function stopTimer() {
@@ -340,10 +342,12 @@ function stopTimer() {
   showTime();
 }
 
-// Save the current session to the calendar if it lasted at least a minute
-function logSession() {
+// Save the current session to the calendar if it lasted at least a minute.
+// It also remembers which café treat was being made, and how many got finished.
+function logSession(finished = false) {
   if (sessionStart && elapsed >= 60) {
-    sessions.push({ start: sessionStart, minutes: Math.round(elapsed / 60) });
+    const made = mode === "timer" ? (finished ? 1 : 0) : Math.floor(elapsed / BATCH_SECS);
+    sessions.push({ start: sessionStart, minutes: Math.round(elapsed / 60), item: cafeItem, made });
     saveSessions();
   }
   sessionStart = null;
@@ -371,8 +375,9 @@ startBtn.addEventListener("click", () => {
     showTime();
     if (mode === "timer" && remaining <= 0) {
       stopTimer();
-      logSession();
-      alert("time's up! 🎉");
+      logSession(true);
+      updateCafe();
+      alert(`time's up! your ${CAFE_MENU[cafeItem].name} is ready 🎉`);
     }
   }, 1000);
   showTime();
@@ -421,7 +426,7 @@ timerWin.dataset.mode = mode;
 // Don't lose a session in progress if the page is closed
 window.addEventListener("pagehide", () => {
   if (sessionStart && elapsed >= 60) {
-    sessions.push({ start: sessionStart, minutes: Math.round(elapsed / 60) });
+    sessions.push({ start: sessionStart, minutes: Math.round(elapsed / 60), item: cafeItem, made: 0 });
     saveSessions();
     // if the page comes back (e.g. browser back button), carry on as a new session
     sessionStart = new Date().toISOString();
@@ -437,6 +442,228 @@ function deleteSession(s) {
   saveSessions();
   dataChanged();
 }
+
+// ===== Café: pick a treat and watch it being made while you study =====
+// Each treat is a little SVG drawing. Parts of it react to progress (0 -> 1):
+//   data-show="0.5"          appears once progress reaches 0.5
+//   data-fill="a,b"          a liquid that rises from data-bottom to data-top between a and b
+//   data-bake="a,b"          colour shifts from data-from to data-to between a and b
+const OUTLINE = "#e3b5c6";
+const CAFE_MENU = {
+  latte: {
+    name: "latte",
+    steps: [[0, "warming the cup"], [0.04, "pulling the espresso"], [0.4, "steaming the milk"],
+            [0.82, "pouring latte art"], [0.96, "almost ready"]],
+    svg: id => `
+      <ellipse cx="100" cy="130" rx="60" ry="9" fill="#fff" stroke="${OUTLINE}" stroke-width="3"/>
+      <defs><clipPath id="${id}c"><path d="M61 64 L139 64 L132 118 Q130 126 122 126 L78 126 Q70 126 68 118 Z"/></clipPath></defs>
+      <path d="M139 78 C164 78 164 110 133 110" fill="none" stroke="${OUTLINE}" stroke-width="7" stroke-linecap="round"/>
+      <path d="M58 62 L142 62 L134 120 Q132 128 124 128 L76 128 Q68 128 66 120 Z" fill="#fff" stroke="${OUTLINE}" stroke-width="3" stroke-linejoin="round"/>
+      <g clip-path="url(#${id}c)">
+        <rect x="55" width="90" fill="#8a5a44" data-fill="0.04,0.8" data-bottom="126" data-top="66"
+              data-bake="0.4,0.8" data-from="#8a5a44" data-to="#d8b08c"/>
+        <ellipse cx="100" cy="67" rx="40" ry="5" fill="#f7e9dc" data-show="0.82"/>
+      </g>
+      <path d="M100 72 l-7 -6 a4 4 0 0 1 7 -4 a4 4 0 0 1 7 4 z" fill="#f6c3d4" data-show="0.9"/>
+      <g class="steam" fill="none" stroke="${OUTLINE}" stroke-width="3" stroke-linecap="round" data-show="0.96">
+        <path d="M84 52 q-6 -8 0 -16 q6 -8 0 -16"/><path d="M100 50 q-6 -8 0 -16 q6 -8 0 -16"/><path d="M116 52 q-6 -8 0 -16 q6 -8 0 -16"/>
+      </g>`,
+  },
+
+  cake: {
+    name: "strawberry cake",
+    steps: [[0, "getting a plate"], [0.12, "baking the sponge"], [0.3, "whipping the cream"],
+            [0.42, "slicing strawberries"], [0.56, "stacking the layers"], [0.7, "frosting the cake"],
+            [0.8, "piping cream"], [0.9, "adding strawberries"]],
+    svg: () => `
+      <ellipse cx="100" cy="128" rx="72" ry="10" fill="#fff" stroke="${OUTLINE}" stroke-width="3"/>
+      <rect x="45" y="100" width="110" height="24" rx="3" fill="#f6d8a8" stroke="#e8c08a" stroke-width="2" data-show="0.12"/>
+      <rect x="45" y="92" width="110" height="9" fill="#fffdf9" stroke="#f0dfe6" stroke-width="1.5" data-show="0.3"/>
+      <g fill="#f6a0b0" data-show="0.42">
+        <ellipse cx="58" cy="96.5" rx="6" ry="3.5"/><ellipse cx="80" cy="96.5" rx="6" ry="3.5"/><ellipse cx="102" cy="96.5" rx="6" ry="3.5"/>
+        <ellipse cx="124" cy="96.5" rx="6" ry="3.5"/><ellipse cx="144" cy="96.5" rx="6" ry="3.5"/>
+      </g>
+      <rect x="45" y="68" width="110" height="24" rx="3" fill="#f6d8a8" stroke="#e8c08a" stroke-width="2" data-show="0.56"/>
+      <g fill="#fff6fa" stroke="#f0cfdc" stroke-width="2" data-show="0.7">
+        <rect x="42" y="60" width="116" height="13" rx="6"/>
+        <ellipse cx="60" cy="74" rx="4" ry="5" stroke="none"/><ellipse cx="88" cy="75" rx="4" ry="6" stroke="none"/>
+        <ellipse cx="118" cy="74" rx="4" ry="5" stroke="none"/><ellipse cx="144" cy="75" rx="4" ry="6" stroke="none"/>
+      </g>
+      <g fill="#fff" stroke="#f0cfdc" stroke-width="2" data-show="0.8">
+        <circle cx="66" cy="56" r="7"/><circle cx="100" cy="55" r="7"/><circle cx="134" cy="56" r="7"/>
+      </g>
+      <g data-show="0.9">
+        ${[66, 100, 134].map(x => `<g transform="translate(${x} 44)">
+          <path d="M0 -6 C7 -6 9 3 0 10 C-9 3 -7 -6 0 -6 Z" fill="#f4889a"/>
+          <path d="M-5 -6 L0 -10 L5 -6 L0 -4 Z" fill="#a9d39a"/>
+          <circle cx="-2" cy="0" r=".9" fill="#fff"/><circle cx="2" cy="3" r=".9" fill="#fff"/></g>`).join("")}
+      </g>`,
+  },
+
+  matcha: {
+    name: "iced matcha",
+    steps: [[0, "chilling the glass"], [0.06, "pouring milk"], [0.18, "adding ice"],
+            [0.5, "whisking matcha"], [0.92, "adding a straw"]],
+    svg: id => `
+      <defs><clipPath id="${id}c"><path d="M69 40 L131 40 L122.5 122 Q121.5 127 117 127 L83 127 Q78.5 127 77.5 122 Z"/></clipPath></defs>
+      <rect x="112" y="12" width="9" height="100" rx="4" fill="#f6b8cf" transform="rotate(12 116 62)" data-show="0.92"/>
+      <path d="M66 38 L134 38 L125 124 Q124 130 118 130 L82 130 Q76 130 75 124 Z" fill="#fff" fill-opacity=".75" stroke="${OUTLINE}" stroke-width="3" stroke-linejoin="round"/>
+      <g clip-path="url(#${id}c)">
+        <rect x="60" width="80" fill="#fbf5ec" data-fill="0.06,0.5" data-bottom="127" data-top="70"/>
+        <rect x="60" width="80" fill="#b5d39a" data-fill="0.5,0.85" data-bottom="70" data-top="46"/>
+        <rect x="80" y="84" width="20" height="18" rx="4" fill="#fff" fill-opacity=".55" stroke="#e6f0f0" stroke-width="1.5" data-show="0.18"/>
+        <rect x="102" y="96" width="18" height="17" rx="4" fill="#fff" fill-opacity=".55" stroke="#e6f0f0" stroke-width="1.5" data-show="0.26"/>
+        <rect x="88" y="52" width="19" height="17" rx="4" fill="#fff" fill-opacity=".55" stroke="#e6f0f0" stroke-width="1.5" data-show="0.6"/>
+      </g>
+      <path d="M72 44 L76 116" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".8"/>`,
+  },
+
+  cookies: {
+    name: "cookies",
+    steps: [[0, "preheating the oven"], [0.1, "scooping dough"], [0.35, "baking"],
+            [0.85, "adding chocolate chips"], [0.95, "cooling down"]],
+    svg: () => {
+      const cookie = (cx, cy, r, show) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#f5e3c3" stroke="#e6c79f" stroke-width="2"
+        data-show="${show}" data-bake="0.35,0.85" data-from="#f5e3c3" data-to="#dba46a"/>`;
+      const chips = (pts) => pts.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="#7a4f3a"/>`).join("");
+      return `
+      <ellipse cx="100" cy="128" rx="72" ry="10" fill="#fff" stroke="${OUTLINE}" stroke-width="3"/>
+      ${cookie(100, 88, 24, 0.1)}${cookie(68, 108, 22, 0.18)}${cookie(132, 108, 22, 0.26)}
+      <g data-show="0.85">${chips([[92, 80], [108, 86], [97, 97], [112, 74], [60, 102], [74, 112], [64, 116], [126, 102], [140, 110], [132, 117]])}</g>
+      <g class="steam" fill="none" stroke="${OUTLINE}" stroke-width="3" stroke-linecap="round" data-show="0.95">
+        <path d="M86 58 q-5 -7 0 -14 q5 -7 0 -14"/><path d="M114 58 q-5 -7 0 -14 q5 -7 0 -14"/>
+      </g>`;
+    },
+  },
+
+  boba: {
+    name: "strawberry boba",
+    steps: [[0, "cooking the pearls"], [0.2, "shaking strawberry milk"], [0.86, "sealing the lid"], [0.93, "adding a straw"]],
+    svg: id => `
+      <defs><clipPath id="${id}c"><path d="M69 50 L131 50 L123.5 122 Q122.5 127 118 127 L82 127 Q77.5 127 76.5 122 Z"/></clipPath></defs>
+      <path d="M66 48 L134 48 L126 124 Q125 130 119 130 L81 130 Q75 130 74 124 Z" fill="#fff" stroke="${OUTLINE}" stroke-width="3" stroke-linejoin="round"/>
+      <g clip-path="url(#${id}c)">
+        <rect x="60" width="80" fill="#f8c9d6" data-fill="0.2,0.8" data-bottom="127" data-top="54"/>
+        <g fill="#6b4436" data-show="0.06">
+          <circle cx="84" cy="121" r="5"/><circle cx="95" cy="123" r="5"/><circle cx="106" cy="121" r="5"/><circle cx="117" cy="122" r="5"/>
+          <circle cx="89" cy="112" r="5"/><circle cx="101" cy="113" r="5"/><circle cx="112" cy="112" r="5"/>
+        </g>
+      </g>
+      <g data-show="0.86">
+        <path d="M62 47 Q100 14 138 47 Z" fill="#fff" fill-opacity=".85" stroke="${OUTLINE}" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="60" y="43" width="80" height="8" rx="3" fill="#fff" stroke="${OUTLINE}" stroke-width="3"/>
+      </g>
+      <rect x="104" y="0" width="10" height="64" rx="4" fill="#f4a6c0" transform="rotate(10 109 32)" data-show="0.93"/>`,
+  },
+};
+
+const cafeDish = document.getElementById("cafe-dish");
+const cafeStatus = document.getElementById("cafe-status");
+const cafeMenuEl = document.getElementById("cafe-menu");
+const cafeTreats = document.getElementById("cafe-treats");
+const BATCH_SECS = 25 * 60;            // stopwatch mode: one treat every 25 minutes
+let cafeItem = CAFE_MENU[localStorage.getItem("cafeItem")] ? localStorage.getItem("cafeItem") : "latte";
+let cafeUid = 0;
+
+function dishMarkup(key) {
+  const id = `dish${++cafeUid}`;       // unique ids so several drawings can share a page
+  return `<svg viewBox="0 0 200 150" aria-hidden="true">${CAFE_MENU[key].svg(id)}</svg>`;
+}
+
+const clamp01 = n => Math.min(1, Math.max(0, n));
+function mixColor(a, b, t) {
+  const pa = a.match(/\w\w/g).map(h => parseInt(h, 16)), pb = b.match(/\w\w/g).map(h => parseInt(h, 16));
+  return "#" + pa.map((v, i) => Math.round(v + (pb[i] - v) * t).toString(16).padStart(2, "0")).join("");
+}
+
+// Draw a treat at a given progress (0 = just started, 1 = ready)
+function paintDish(svg, p) {
+  svg.querySelectorAll("[data-show]").forEach(el => el.classList.toggle("hidden-part", p < Number(el.dataset.show)));
+  svg.querySelectorAll("[data-fill]").forEach(el => {
+    const [a, b] = el.dataset.fill.split(",").map(Number);
+    const bottom = Number(el.dataset.bottom), top = Number(el.dataset.top);
+    const level = clamp01((p - a) / (b - a)) * (bottom - top);
+    el.setAttribute("y", bottom - level);
+    el.setAttribute("height", level);
+  });
+  svg.querySelectorAll("[data-bake]").forEach(el => {
+    const [a, b] = el.dataset.bake.split(",").map(Number);
+    el.setAttribute("fill", mixColor(el.dataset.from, el.dataset.to, clamp01((p - a) / (b - a))));
+  });
+}
+
+// How far along the current treat is
+function cafeProgress() {
+  if (mode === "timer") return duration ? 1 - remaining / duration : 0;
+  return (elapsed % BATCH_SECS) / BATCH_SECS;
+}
+
+function updateCafe() {
+  const item = CAFE_MENU[cafeItem];
+  const svg = cafeDish.querySelector("svg");
+  const p = cafeProgress();
+  paintDish(svg, p);
+  const idle = !timerId && elapsed === 0 && (mode === "stopwatch" || remaining === duration);
+  if (idle) {
+    cafeStatus.textContent = `one ${item.name}, coming up - press start ♡`;
+  } else if (mode === "timer" && remaining === 0) {
+    cafeStatus.textContent = `your ${item.name} is ready! enjoy ♡`;
+  } else {
+    const step = item.steps.filter(([t]) => p >= t).pop()[1];
+    const batch = mode === "stopwatch" && elapsed >= BATCH_SECS ? ` · treat #${Math.floor(elapsed / BATCH_SECS) + 1}` : "";
+    cafeStatus.textContent = `${step}... ${Math.floor(p * 100)}%${batch}${timerId ? "" : " (paused)"}`;
+  }
+}
+
+function pickTreat(key) {
+  cafeItem = key;
+  localStorage.setItem("cafeItem", key);
+  cafeDish.innerHTML = dishMarkup(key);
+  cafeMenuEl.querySelectorAll("button").forEach(b => {
+    const on = b.dataset.item === key;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-checked", on);
+  });
+  updateCafe();
+}
+
+// Menu buttons: a finished version of each treat as a little picture
+Object.entries(CAFE_MENU).forEach(([key, item]) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.dataset.item = key;
+  b.title = item.name;
+  b.setAttribute("role", "radio");
+  b.setAttribute("aria-label", item.name);
+  b.innerHTML = dishMarkup(key);
+  paintDish(b.querySelector("svg"), 1);
+  b.addEventListener("click", () => pickTreat(key));
+  cafeMenuEl.appendChild(b);
+});
+
+// "today's treats": finished treats saved on study sessions as { item, made }
+function renderTreats() {
+  const today = dateKey(new Date());
+  const counts = {};
+  sessions.filter(s => s.item && s.made && dateKey(new Date(s.start)) === today)
+    .forEach(s => counts[s.item] = (counts[s.item] || 0) + s.made);
+  cafeTreats.innerHTML = "";
+  const keys = Object.keys(counts).filter(k => CAFE_MENU[k]);
+  if (!keys.length) { cafeTreats.textContent = "no treats made yet today"; return; }
+  cafeTreats.append("today's treats: ");
+  keys.forEach(k => {
+    const chip = document.createElement("span");
+    chip.className = "treat-chip";
+    chip.title = CAFE_MENU[k].name;
+    chip.innerHTML = dishMarkup(k);
+    paintDish(chip.querySelector("svg"), 1);
+    chip.append(`×${counts[k]}`);
+    cafeTreats.appendChild(chip);
+  });
+}
+
+pickTreat(cafeItem);
+renderTreats();
 
 // ===== Study stats =====
 const stList = document.getElementById("st-list");
