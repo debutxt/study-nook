@@ -343,11 +343,12 @@ function stopTimer() {
 }
 
 // Save the current session to the calendar if it lasted at least a minute.
-// It also remembers which café treat was being made, and how many got finished.
+// Timer sessions also remember which café treat was made (the stopwatch has no café).
 function logSession(finished = false) {
   if (sessionStart && elapsed >= 60) {
-    const made = mode === "timer" ? (finished ? 1 : 0) : Math.floor(elapsed / BATCH_SECS);
-    sessions.push({ start: sessionStart, minutes: Math.round(elapsed / 60), item: cafeItem, made });
+    const session = { start: sessionStart, minutes: Math.round(elapsed / 60) };
+    if (mode === "timer") Object.assign(session, { item: cafeItem, made: finished ? 1 : 0 });
+    sessions.push(session);
     saveSessions();
   }
   sessionStart = null;
@@ -561,7 +562,6 @@ const cafeDish = document.getElementById("cafe-dish");
 const cafeStatus = document.getElementById("cafe-status");
 const cafeMenuEl = document.getElementById("cafe-menu");
 const cafeTreats = document.getElementById("cafe-treats");
-const BATCH_SECS = 25 * 60;            // stopwatch mode: one treat every 25 minutes
 let cafeItem = CAFE_MENU[localStorage.getItem("cafeItem")] ? localStorage.getItem("cafeItem") : "latte";
 let cafeUid = 0;
 
@@ -594,24 +594,23 @@ function paintDish(svg, p) {
 
 // How far along the current treat is
 function cafeProgress() {
-  if (mode === "timer") return duration ? 1 - remaining / duration : 0;
-  return (elapsed % BATCH_SECS) / BATCH_SECS;
+  return duration ? 1 - remaining / duration : 0;
 }
 
 function updateCafe() {
+  if (mode !== "timer") return;   // the café is only part of the timer
   const item = CAFE_MENU[cafeItem];
   const svg = cafeDish.querySelector("svg");
   const p = cafeProgress();
   paintDish(svg, p);
-  const idle = !timerId && elapsed === 0 && (mode === "stopwatch" || remaining === duration);
+  const idle = !timerId && elapsed === 0 && remaining === duration;
   if (idle) {
     cafeStatus.textContent = `one ${item.name}, coming up - press start ♡`;
-  } else if (mode === "timer" && remaining === 0) {
+  } else if (remaining === 0) {
     cafeStatus.textContent = `your ${item.name} is ready! enjoy ♡`;
   } else {
     const step = item.steps.filter(([t]) => p >= t).pop()[1];
-    const batch = mode === "stopwatch" && elapsed >= BATCH_SECS ? ` · treat #${Math.floor(elapsed / BATCH_SECS) + 1}` : "";
-    cafeStatus.textContent = `${step}... ${Math.floor(p * 100)}%${batch}${timerId ? "" : " (paused)"}`;
+    cafeStatus.textContent = `${step}... ${Math.floor(p * 100)}%${timerId ? "" : " (paused)"}`;
   }
 }
 

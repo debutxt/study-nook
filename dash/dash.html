@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>study desktop</title>
-  <link rel="stylesheet" href="dash.css?v=6">
+  <link rel="stylesheet" href="dash.css?v=7">
 </head>
 <body>
   <!-- macOS-style menu bar -->
@@ -81,12 +81,12 @@
         </div>
 
         <!-- café counter: your treat gets made as the timer runs -->
-        <div class="cafe-scene">
+        <div class="cafe-scene timer-only">
           <div id="cafe-dish"></div>
           <div class="cafe-counter"></div>
         </div>
-        <p id="cafe-status" class="cafe-status" aria-live="polite"></p>
-        <div id="cafe-menu" class="cafe-menu" role="radiogroup" aria-label="pick a treat"></div>
+        <p id="cafe-status" class="cafe-status timer-only" aria-live="polite"></p>
+        <div id="cafe-menu" class="cafe-menu timer-only" role="radiogroup" aria-label="pick a treat"></div>
 
         <div id="timer-display">25:00</div>
         <div class="row">
@@ -104,7 +104,7 @@
           <button type="submit">set</button>
         </form>
         <p class="hint stopwatch-only">sessions of 1 min or more are saved when you press stop & save</p>
-        <p id="cafe-treats" class="hint cafe-treats"></p>
+        <p id="cafe-treats" class="hint cafe-treats timer-only"></p>
         <p id="timer-today" class="hint"></p>
       </div>
     </section>
@@ -180,6 +180,6 @@
   <!-- Dock (filled in by dash.js from the desktop icons) -->
   <nav id="dock" aria-label="dock"></nav>
 
-  <script src="dash.js?v=6"></script>
+  <script src="dash.js?v=7"></script>
 </body>
 </html>

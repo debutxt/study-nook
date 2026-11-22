@@ -495,7 +495,7 @@ textarea, input, #todo-list .todo-body > span, .user-text { text-transform: none
 /* menu pictures: show the whole treat with no animation */
 .cafe-menu .steam path, .treat-chip .steam path { animation: none; opacity: 1; }
 
-#timer-display { font-size: 2.6rem; margin: 2px 0 8px; }
+#timer-display { font-size: 2.6rem; margin: 14px 0 20px; }   /* breathing room above the buttons */
 
 .cafe-treats { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-bottom: 0; }
 .treat-chip { display: inline-flex; align-items: center; gap: 1px; color: var(--text); }
